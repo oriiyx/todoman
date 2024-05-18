@@ -10,3 +10,13 @@ lint:
 	@echo "Started linting process."
 	@golangci-lint run
 	@echo "Finished linting."
+
+test:
+	@echo "Started testing process."
+	@go test -v ./...
+	@echo "Finished testing."
+
+run:
+	@echo "Started running process."
+	@go run ./cmd/todoman/main.go
+	@echo "Finished running."

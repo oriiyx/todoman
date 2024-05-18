@@ -2,40 +2,83 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"os"
 
-	"github.com/jroimartin/gocui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
-	if err != nil {
-		log.Panicln(err)
-	}
-	defer g.Close()
-
-	g.SetManagerFunc(layout)
-
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		log.Panicln(err)
-	}
-
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Panicln(err)
+	p := tea.NewProgram(initialModel())
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
 }
 
-func layout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
-	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		fmt.Fprintln(v, "Hello world!")
+type model struct {
+	choices  []string
+	cursor   int
+	selected map[int]struct{}
+}
+
+func initialModel() model {
+	return model{
+		choices:  []string{"todo 1", "todo 2", "todo 3"},
+		selected: make(map[int]struct{}),
 	}
+}
+
+func (m model) Init() tea.Cmd {
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+
+		case "down":
+			if m.cursor < len(m.choices)-1 {
+				m.cursor++
+			}
+		case "enter":
+			_, ok := m.selected[m.cursor]
+			if ok {
+				delete(m.selected, m.cursor)
+			} else {
+				m.selected[m.cursor] = struct{}{}
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	s := "What would you like to do today?\n\n"
+
+	for i, choice := range m.choices {
+		cursor := " "
+		if m.cursor == i {
+			cursor = ">"
+		}
+
+		checked := " "
+		if _, ok := m.selected[i]; ok {
+			checked = "x"
+		}
+
+		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+	}
+
+	s += "\nPress ctrl+c to quit."
+
+	return s
 }
