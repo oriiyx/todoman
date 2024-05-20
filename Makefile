@@ -18,5 +18,5 @@ test:
 
 run:
 	@echo "Started running process."
-	@go run ./cmd/todoman/main.go
+	@go run ./main.go
 	@echo "Finished running."
